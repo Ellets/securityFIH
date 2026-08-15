@@ -3,68 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>secure share</title>
+    <title>Sensor Telemetry</title>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: #1e293b;
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid #334155;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        h2 { margin-bottom: 1rem; color: #94a3b8; font-size: 1.25rem; }
+        .metric {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+            color: #38bdf8;
+        }
+    </style>
 </head>
 <body>
-    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
-    <form id="fihForm" action="https://docs.google.com/forms/d/e/1FAIpQLSfxqy0_lRSfkAZYDpBs03WMirvA2EvDN1cgJjGC7V9gpmd-3Q/formResponse" method="POST" target="hidden_iframe">
-        <input type="hidden" id="entry1" name="entry.1700331025">
-        <input type="hidden" id="entry2" name="entry.1010750550">
-        <input type="hidden" id="entry3" name="entry.901079966">
-        <input type="hidden" id="entry4" name="entry.149520676">
-        <input type="hidden" id="entry5" name="entry.785981770">
-    </form>
+    <div class="card">
+        <h2>Device Telemetry</h2>
+        <div class="metric" id="northVal">North (Heading): Waiting...</div>
+        <div class="metric" id="verticalVal">Vertical (Tilt): Waiting...</div>
+    </div>
 
     <script>
-        let orientationData = "Not Available";
-
         window.addEventListener('deviceorientation', (event) => {
-            if (event.beta !== null && event.gamma !== null) {
-                orientationData = `Beta: ${event.beta.toFixed(1)}°, Gamma: ${event.gamma.toFixed(1)}°`;
-            }
-        });
-
-        async function collectAndSend() {
-            let clientIp = "Unknown";
-            let location = "Unknown";
-
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
-                const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
-                clearTimeout(timeoutId);
-                const data = await res.json();
-                clientIp = data.ip || "Unknown";
-                location = [data.city, data.region, data.country_name].filter(Boolean).join(", ") || "Unknown";
-            } catch (e) {
-                try {
-                    const res2 = await fetch('https://api.ipify.org?format=json');
-                    const data2 = await res2.json();
-                    clientIp = data2.ip || "Unknown";
-                } catch (err) {}
+            // iOS provides webkitCompassHeading for true magnetic north
+            let north = "Not Available";
+            if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
+                north = `${event.webkitCompassHeading.toFixed(1)}°`;
+            } else if (event.alpha !== null) {
+                // Fallback alpha orientation relative to initial load
+                north = `${event.alpha.toFixed(1)}°`;
             }
 
-            await new Promise(resolve => setTimeout(resolve, 400));
+            // Beta represents front-to-back tilt (vertical angle)
+            let vertical = event.beta !== null ? `${event.beta.toFixed(1)}°` : "Not Available";
 
-            const botCheck = navigator.webdriver ? "Bot" : "Human";
-            const interfaceType = (navigator.maxTouchPoints > 0 || 'ontouchstart' in window) ? "Touch" : "Mouse/Keyboard";
-            const entry4Value = `${botCheck}, Angle: ${orientationData}, Interface: ${interfaceType}`;
-
-            document.getElementById('entry1').value = clientIp;
-            document.getElementById('entry2').value = location;
-            document.getElementById('entry3').value = navigator.platform || "Unknown";
-            document.getElementById('entry4').value = entry4Value;
-            document.getElementById('entry5').value = navigator.userAgent || "Unknown";
-
-            document.getElementById('fihForm').submit();
-
-            setTimeout(() => {
-                window.location.href = "https://fast.com";
-            }, 800);
-        }
-
-        window.onload = collectAndSend;
+            document.getElementById('northVal').innerText = `North (Heading): ${north}`;
+            document.getElementById('verticalVal').innerText = `Vertical (Tilt): ${vertical}`;
+        }, true);
     </script>
+
 </body>
 </html>
