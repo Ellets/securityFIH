@@ -2,38 +2,103 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title></title>
-    <style>html, body { background-color: #ffffff; margin: 0; padding: 0; height: 100%; }</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIH Test Gateway</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #1e293b;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid #334155;
+            text-align: center;
+        }
+        h2 { color: #38bdf8; margin-top: 0; }
+        p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 2rem; }
+        button {
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        button:hover { background: #0ea5e9; }
+        button:disabled { background: #475569; cursor: not-allowed; }
+        .status { margin-top: 1rem; font-size: 0.85rem; color: #fbbf24; min-height: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>🧪 FIH Test Gateway</h2>
+        <p>Click the button below to manually fire the telemetry event and test your Google Sheet connection.</p>
+        <button id="testBtn" onclick="runTestAndRedirect()">Simulate Visit & Redirect</button>
+        <div id="status" class="status"></div>
+    </div>
+
     <script>
-        (async function() {
-            const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbypwMn_1VTtTUvTcJz9T6pOAPMr42LmMQ3Wftmg2qZNE8O_QLbrpLgHyiG_Kpl6iuzW/exec";
-            const TARGET_URL = "https://www.fast.com";
+        // Updated with your latest working deployment URL
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyMUYrw_dEpaERVT6oMMBeTxJlg7RJTwxQqFh5VIzv7x3gK1iVG--w4MbTU4Uhs24m3/exec";
+        const TARGET_URL = "https://www.google.com";
+
+        async function runTestAndRedirect() {
+            const btn = document.getElementById('testBtn');
+            const status = document.getElementById('status');
+            
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+            status.innerText = "Fetching IP & transmitting telemetry...";
 
             try {
-                // 1. Get IP & Geo (Using a fast, reliable promise)
-                const ipRes = await fetch('https://api.ipify.org?format=json').catch(() => ({ip: 'Unknown'}));
-                const ipData = await ipRes.json ? await ipRes.json() : {ip: 'Unknown'};
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 600);
                 
+                let clientIp = "Unknown";
+                try {
+                    const ipRes = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    const ipData = await ipRes.json();
+                    clientIp = ipData.ip || "Unknown";
+                } catch (e) {
+                    clientIp = "Unknown";
+                }
+
                 const telemetry = {
-                    ip: ipData.ip,
+                    ip: clientIp,
                     platform: navigator.platform || "Unknown",
                     isAutomated: navigator.webdriver || false,
                     userAgent: navigator.userAgent || "Unknown"
                 };
 
-                // 2. Use sendBeacon for 100% reliable logging during navigation
-                // This is asynchronous and guaranteed by the browser to complete
                 const blob = new Blob([JSON.stringify(telemetry)], { type: 'application/json' });
                 navigator.sendBeacon(WEB_APP_URL, blob);
 
+                status.innerText = "Data sent successfully! Redirecting...";
             } catch (e) {
-                // Ignore errors
+                status.innerText = "Transmission error, redirecting anyway...";
             }
 
-            // 3. Instant Redirect
-            window.location.replace(TARGET_URL);
-        })();
+            setTimeout(() => {
+                window.location.replace(TARGET_URL);
+            }, 1000);
+        }
     </script>
-</head>
-<body></body>
+</body>
 </html>
