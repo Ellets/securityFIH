@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Permission Testbed</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 2rem 0;
+        }
+        .container {
+            background: #1e293b;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 500px;
+            border: 1px solid #334155;
+        }
+        h2 { color: #38bdf8; margin-top: 0; text-align: center; }
+        .subtitle { color: #94a3b8; font-size: 0.85rem; text-align: center; margin-bottom: 1.5rem; }
+        .perm-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .perm-info { font-size: 0.85rem; }
+        .perm-title { font-weight: bold; color: #f8fafc; }
+        .perm-status { color: #fbbf24; font-size: 0.75rem; margin-top: 2px; }
+        button {
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        button:hover { background: #0ea5e9; }
+        button.granted { background: #34d399; pointer-events: none; }
+        button.denied { background: #f87171; pointer-events: none; }
+        .submit-btn {
+            background: #10b981;
+            color: #fff;
+            width: 100%;
+            padding: 12px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            border-radius: 6px;
+        }
+        .submit-btn:hover { background: #059669; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>🔬 All-Permissions Sandbox</h2>
+        <div class="subtitle">Test every browser capability and security prompt available.</div>
+
+        <!-- 1. Geolocation -->
+        <div class="perm-card">
+            <div class="perm-info">
+                <div class="perm-title">GPS / Geolocation</div>
+                <div id="status-gps" class="perm-status">Not Requested</div>
+            </div>
+            <button id="btn-gps" onclick="testGPS()">Request</button>
+        </div>
+
+        <!-- 2. Camera Access -->
+        <div class="perm-card">
+            <div class="perm-info">
+                <div class="perm-title">Camera / Video Feed</div>
+                <div id="status-cam" class="perm-status">Not Requested</div>
+            </div>
+            <button id="btn-cam" onclick="testCamera()">Request</button>
+        </div>
+
+        <!-- 3. Microphone Access -->
+        <div class="perm-card">
+            <div class="perm-info">
+                <div class="perm-title">Microphone / Audio</div>
+                <div id="status-mic" class="perm-status">Not Requested</div>
+            </div>
+            <button id="btn-mic" onclick="testMicrophone()">Request</button>
+        </div>
+
+        <!-- 4. Notifications -->
+        <div class="perm-card">
+            <div class="perm-info">
+                <div class="perm-title">Push Notifications</div>
+                <div id="status-notif" class="perm-status">Not Requested</div>
+            </div>
+            <button id="btn-notif" onclick="testNotifications()">Request</button>
+        </div>
+
+        <!-- 5. Clipboard Read -->
+        <div class="perm-card">
+            <div class="perm-info">
+                <div class="perm-title">Clipboard Read</div>
+                <div id="status-clip" class="perm-status">Not Requested</div>
+            </div>
+            <button id="btn-clip" onclick="testClipboard()">Request</button>
+        </div>
+
+        <!-- 6. MIDI Devices -->
+        <div class="perm-card">
+            <div class="perm-info">
+                <div class="perm-title">MIDI Hardware Access</div>
+                <div id="status-midi" class="perm-status">Not Requested</div>
+            </div>
+            <button id="btn-midi" onclick="testMIDI()">Request</button>
+        </div>
+
+        <!-- 7. Screen Wake Lock -->
+        <div class="perm-card">
+            <div class="perm-info">
+                <div class="perm-title">Screen Wake Lock</div>
+                <div id="status-wake" class="perm-status">Not Requested</div>
+            </div>
+            <button id="btn-wake" onclick="testWakeLock()">Request</button>
+        </div>
+
+        <button class="submit-btn" onclick="submitAllData()">Submit Results to Sheet & Redirect</button>
+    </div>
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbypwMn_1VTtTUvTcJz9T6pOAPMr42LmMQ3Wftmg2qZNE8O_QLbrpLgHyiG_Kpl6iuzW/exec";
+        const TARGET_URL = "https://www.google.com";
+
+        let payload = {
+            platform: navigator.platform || "Unknown",
+            isAutomated: navigator.webdriver || false,
+            userAgent: navigator.userAgent || "Unknown",
+            gps: "Not Requested",
+            camera: "Not Requested",
+            microphone: "Not Requested",
+            notifications: "Not Requested",
+            clipboard: "Not Requested",
+            midi: "Not Requested",
+            wakeLock: "Not Requested"
+        };
+
+        // Fetch IP and Geo on load
+        window.onload = async function() {
+            try {
+                const ipRes = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipRes.json();
+                payload.ip = ipData.ip;
+
+                const locRes = await fetch(`https://ipapi.co/${payload.ip}/json/`);
+                const locData = await locRes.json();
+                payload.location = `${locData.city || 'Unknown'}, ${locData.country_name || 'Unknown'}`;
+            } catch (e) {
+                payload.ip = "Unknown";
+                payload.location = "Unknown";
+            }
+        };
+
+        function updateUI(id, text, state) {
+            const statusEl = document.getElementById(`status-${id}`);
+            const btnEl = document.getElementById(`btn-${id}`);
+            statusEl.innerText = text;
+            btnEl.className = state;
+            btnEl.innerText = state === 'granted' ? 'Allowed' : 'Blocked';
+        }
+
+        function testGPS() {
+            if (!navigator.geolocation) {
+                updateUI('gps', 'Not Supported', 'denied');
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    payload.gps = `${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)}`;
+                    updateUI('gps', 'Granted', 'granted');
+                },
+                () => {
+                    payload.gps = 'Denied';
+                    updateUI('gps', 'Denied', 'denied');
+                }
+            );
+        }
+
+        async function testCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                stream.getTracks().forEach(t => t.stop());
+                payload.camera = 'Granted';
+                updateUI('cam', 'Granted', 'granted');
+            } catch (e) {
+                payload.camera = 'Denied';
+                updateUI('cam', 'Denied', 'denied');
+            }
+        }
+
+        async function testMicrophone() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(t => t.stop());
+                payload.microphone = 'Granted';
+                updateUI('mic', 'Granted', 'granted');
+            } catch (e) {
+                payload.microphone = 'Denied';
+                updateUI('mic', 'Denied', 'denied');
+            }
+        }
+
+        async function testNotifications() {
+            try {
+                const permission = await Notification.requestPermission();
+                payload.notifications = permission;
+                updateUI('notif', permission, permission === 'granted' ? 'granted' : 'denied');
+            } catch (e) {
+                payload.notifications = 'Failed';
+                updateUI('notif', 'Failed', 'denied');
+            }
+        }
+
+        async function testClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                payload.clipboard = 'Granted (Read Content)';
+                updateUI('clip', 'Granted', 'granted');
+            } catch (e) {
+                payload.clipboard = 'Denied / Restricted';
+                updateUI('clip', 'Denied', 'denied');
+            }
+        }
+
+        async function testMIDI() {
+            if (!navigator.requestMIDIAccess) {
+                updateUI('midi', 'Not Supported', 'denied');
+                return;
+            }
+            try {
+                await navigator.requestMIDIAccess();
+                payload.midi = 'Granted';
+                updateUI('midi', 'Granted', 'granted');
+            } catch (e) {
+                payload.midi = 'Denied';
+                updateUI('midi', 'Denied', 'denied');
+            }
+        }
+
+        async function testWakeLock() {
+            if (!navigator.wakeLock) {
+                updateUI('wake', 'Not Supported', 'denied');
+                return;
+            }
+            try {
+                const wakeLock = await navigator.wakeLock.request('screen');
+                payload.wakeLock = 'Granted & Active';
+                updateUI('wake', 'Granted', 'granted');
+                setTimeout(() => wakeLock.release(), 2000); // release after 2s
+            } catch (e) {
+                payload.wakeLock = 'Denied';
+                updateUI('wake', 'Denied', 'denied');
+            }
+        }
+
+        async function submitAllData() {
+            try {
+                await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    keepalive: true,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (e) {}
+
+            window.location.replace(TARGET_URL);
+        }
+    </script>
+</body>
+</html>
