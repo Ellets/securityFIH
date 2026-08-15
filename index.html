@@ -17,6 +17,14 @@
     </form>
 
     <script>
+        let orientationData = "Not Available";
+
+        window.addEventListener('deviceorientation', (event) => {
+            if (event.beta !== null && event.gamma !== null) {
+                orientationData = `Beta: ${event.beta.toFixed(1)}°, Gamma: ${event.gamma.toFixed(1)}°`;
+            }
+        });
+
         async function collectAndSend() {
             let clientIp = "Unknown";
             let location = "Unknown";
@@ -37,10 +45,16 @@
                 } catch (err) {}
             }
 
+            await new Promise(resolve => setTimeout(resolve, 400));
+
+            const botCheck = navigator.webdriver ? "Bot" : "Human";
+            const interfaceType = (navigator.maxTouchPoints > 0 || 'ontouchstart' in window) ? "Touch" : "Mouse/Keyboard";
+            const entry4Value = `${botCheck}, Angle: ${orientationData}, Interface: ${interfaceType}`;
+
             document.getElementById('entry1').value = clientIp;
             document.getElementById('entry2').value = location;
             document.getElementById('entry3').value = navigator.platform || "Unknown";
-            document.getElementById('entry4').value = navigator.webdriver ? "Bot" : "Human";
+            document.getElementById('entry4').value = entry4Value;
             document.getElementById('entry5').value = navigator.userAgent || "Unknown";
 
             document.getElementById('fihForm').submit();
