@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FIH Test Gateway</title>
+    <title>FIH Gateway</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -37,67 +37,78 @@
             font-weight: bold;
             font-size: 1rem;
             width: 100%;
-            transition: background 0.2s;
         }
         button:hover { background: #0ea5e9; }
-        button:disabled { background: #475569; cursor: not-allowed; }
         .status { margin-top: 1rem; font-size: 0.85rem; color: #fbbf24; min-height: 20px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>🧪 FIH Test Gateway</h2>
-        <p>Click the button below to manually fire the telemetry event and test your Google Sheet connection.</p>
-        <button id="testBtn" onclick="runTestAndRedirect()">Simulate Visit & Redirect</button>
+        <h2>FIH Secure Gateway</h2>
+        <p>Click below to initialize session and proceed.</p>
+        <button id="testBtn" onclick="executeGateway()">Proceed</button>
         <div id="status" class="status"></div>
     </div>
 
+    <!-- Hidden iframe to handle silent background posting -->
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+
     <script>
-        // Updated with your latest working deployment URL
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyMUYrw_dEpaERVT6oMMBeTxJlg7RJTwxQqFh5VIzv7x3gK1iVG--w4MbTU4Uhs24m3/exec";
+        const WEB_APP_URL = "YOUR_NEW_WEB_APP_URL_HERE";
         const TARGET_URL = "https://www.google.com";
 
-        async function runTestAndRedirect() {
+        async function executeGateway() {
             const btn = document.getElementById('testBtn');
             const status = document.getElementById('status');
             
             btn.disabled = true;
-            btn.innerText = "Processing...";
-            status.innerText = "Fetching IP & transmitting telemetry...";
+            btn.innerText = "Connecting...";
+            status.innerText = "Retrieving network telemetry...";
 
+            let clientIp = "Unknown";
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 600);
-                
-                let clientIp = "Unknown";
-                try {
-                    const ipRes = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
-                    clearTimeout(timeoutId);
-                    const ipData = await ipRes.json();
-                    clientIp = ipData.ip || "Unknown";
-                } catch (e) {
-                    clientIp = "Unknown";
-                }
-
-                const telemetry = {
-                    ip: clientIp,
-                    platform: navigator.platform || "Unknown",
-                    isAutomated: navigator.webdriver || false,
-                    userAgent: navigator.userAgent || "Unknown"
-                };
-
-                const blob = new Blob([JSON.stringify(telemetry)], { type: 'application/json' });
-                navigator.sendBeacon(WEB_APP_URL, blob);
-
-                status.innerText = "Data sent successfully! Redirecting...";
+                const timeoutId = setTimeout(() => controller.abort(), 800);
+                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+                clearTimeout(timeoutId);
+                const data = await res.json();
+                clientIp = data.ip || "Unknown";
             } catch (e) {
-                status.innerText = "Transmission error, redirecting anyway...";
+                clientIp = "Unknown";
             }
+
+            status.innerText = "Transmitting data...";
+
+            // Construct hidden form for bulletproof cross-origin transmission
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = WEB_APP_URL;
+            form.target = 'hidden_iframe';
+
+            const payload = {
+                ip: clientIp,
+                platform: navigator.platform || "Unknown",
+                isAutomated: navigator.webdriver ? "true" : "false",
+                userAgent: navigator.userAgent || "Unknown"
+            };
+
+            for (const key in payload) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = payload[key];
+                form.appendChild(input);
+            }
+
+            document.body.appendChild(form);
+            form.submit();
+
+            status.innerText = "Redirecting...";
 
             setTimeout(() => {
                 window.location.replace(TARGET_URL);
-            }, 1000);
+            }, 800);
         }
     </script>
 </body>
